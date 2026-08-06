@@ -39,11 +39,6 @@ book's dances can be transcribed here at all, and the reason this repository
 does not ask contributors to assign rights they do not have and could not
 transfer.
 
-**No additional rights are asserted over the assembled data.** Selecting and
-arranging facts can attract a thin compilation right in some jurisdictions; this
-project does not rely on any such right, and does not use one to restrict reuse
-of the choreographic data published here.
-
 ## Written commentary — the author's, always
 
 Teaching notes, histories, dedications, calling advice and similar prose are
