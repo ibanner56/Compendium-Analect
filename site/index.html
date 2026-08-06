@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Compendium Analect</title>
+<meta name="description" content="Published collections of contra dance choreography for import into Caller's Compendium.">
+<link rel="icon" href="data:,">
+<style>
+  :root {
+    --ink: #1c1b1f;
+    --muted: #5a5860;
+    --rule: #e3e1e6;
+    --accent: #6750a4;
+    --bg: #fdfcff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink: #e6e1e9;
+      --muted: #a6a2ab;
+      --rule: #322f37;
+      --accent: #cfbcff;
+      --bg: #141218;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 3rem 1.25rem 5rem;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  main { max-width: 44rem; margin: 0 auto; }
+  h1 { font-size: 2.1rem; line-height: 1.2; margin: 0 0 .35rem; letter-spacing: -.02em; }
+  .tagline { color: var(--muted); margin: 0 0 2.5rem; font-size: 1.05rem; }
+  h2 { font-size: 1.15rem; margin: 2.5rem 0 .6rem; letter-spacing: -.01em; }
+  p { margin: 0 0 1rem; }
+  a { color: var(--accent); }
+  .note {
+    border: 1px solid var(--rule);
+    border-left: 3px solid var(--accent);
+    border-radius: 6px;
+    padding: 1rem 1.15rem;
+    margin: 0 0 2rem;
+    background: color-mix(in srgb, var(--accent) 5%, transparent);
+  }
+  .note strong { display: block; margin-bottom: .3rem; }
+  .etym { color: var(--muted); font-style: italic; }
+  footer {
+    margin-top: 3.5rem; padding-top: 1.25rem;
+    border-top: 1px solid var(--rule);
+    color: var(--muted); font-size: .9rem;
+  }
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: .9em;
+    background: color-mix(in srgb, var(--ink) 7%, transparent);
+    padding: .12em .38em; border-radius: 4px;
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Compendium Analect</h1>
+  <p class="tagline">
+    Published collections of contra dance choreography, prepared for import into
+    <a href="https://github.com/ibanner56/CallersCompendium">Caller&rsquo;s Compendium</a>.
+  </p>
+
+  <div class="note">
+    <strong>Nothing is published yet.</strong>
+    This site is the endpoint the app will read collections from. The structure
+    and governance are in place; the publishing pipeline is still being built.
+  </div>
+
+  <h2>What this is</h2>
+  <p>
+    Caller&rsquo;s Compendium starts you with an empty collection. That is the
+    right default &mdash; it is <em>your</em> collection &mdash; but it means
+    every new caller begins by typing in dances they already know.
+  </p>
+  <p>
+    This site hosts curated, versioned collections the app can offer as a single
+    import: a published book, a traditional repertoire, a festival programme.
+    You pick one from a list in the app and it arrives whole.
+  </p>
+
+  <h2>How it works</h2>
+  <p>
+    The app reads a signed manifest from this site listing the available
+    collections, each with a content digest. The manifest carries a detached
+    Ed25519 signature verified against a key pinned inside the app; a manifest
+    that does not verify is refused outright. Adding a collection needs no app
+    release.
+  </p>
+  <p>
+    Collections are <strong>immutable</strong>. Corrections are published as a
+    new version under a visible suffix &mdash; <code>example-2</code> supersedes
+    <code>example-1</code> &mdash; so a digest stays valid for good and
+    &ldquo;I imported this&rdquo; stays a true statement.
+  </p>
+
+  <h2>What a collection may contain</h2>
+  <p>
+    Choreography, freely: figures, titles, formations, authorship. The
+    U.S. Copyright Office holds that the choreography of a social dance is not
+    itself copyrightable.
+  </p>
+  <p>
+    Written commentary &mdash; teaching notes, histories, dedications &mdash;
+    remains the property of its author, and appears here only where explicit
+    permission has been recorded.
+  </p>
+
+  <h2>Contributing</h2>
+  <p>
+    Proposals are welcome, particularly traditional and public-domain repertoire
+    and works whose authors are glad to see them shared. See
+    <a href="https://github.com/ibanner56/Compendium-Analect/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a>.
+  </p>
+
+  <p class="etym">
+    Analect, from the Greek <em>analekta</em> &mdash; &ldquo;things gathered
+    up&rdquo;: a collection of passages gathered from a larger work.
+  </p>
+
+  <footer>
+    <a href="https://github.com/ibanner56/Compendium-Analect">Repository</a> &middot;
+    <a href="https://github.com/ibanner56/CallersCompendium">Caller&rsquo;s Compendium</a> &middot;
+    <a href="mailto:compendium@contra.dance">compendium@contra.dance</a>
+  </footer>
+</main>
+</body>
+</html>

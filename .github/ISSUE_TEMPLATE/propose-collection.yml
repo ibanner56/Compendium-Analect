@@ -1,0 +1,89 @@
+name: Propose a collection
+description: Suggest a new collection of dances to publish here.
+title: "[Collection]: "
+labels: ["type: collection", "status: triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for proposing a collection. Please open this **before** preparing
+        an archive — it is much cheaper to agree the scope here than to build
+        something that can't be accepted.
+
+        If this involves someone else's written notes, the permission question
+        below is the one that decides whether this can go ahead.
+
+  - type: input
+    id: name
+    attributes:
+      label: Collection name
+      description: What should this be called in the app's list?
+      placeholder: e.g. "Figures of Dance and Air, Volume 1"
+    validations:
+      required: true
+
+  - type: textarea
+    id: source
+    attributes:
+      label: Source
+      description: >
+        Where do these dances come from — a book, a festival programme, a
+        traditional repertoire? Link it if it's online.
+    validations:
+      required: true
+
+  - type: input
+    id: author
+    attributes:
+      label: Author / choreographer
+      description: Who wrote these dances? Say "various" or "traditional" if that fits.
+    validations:
+      required: true
+
+  - type: input
+    id: size
+    attributes:
+      label: Roughly how many dances?
+      placeholder: e.g. "about 40"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: commentary
+    attributes:
+      label: Does this include written commentary?
+      description: >
+        Teaching notes, histories, dedications, calling advice — any prose
+        beyond the figures themselves.
+      options:
+        - "No — figures and structural facts only"
+        - "Yes — and I have explicit permission from the author"
+        - "Yes — and I am the author"
+        - "Yes — but I don't have permission yet"
+        - "I'm not sure"
+    validations:
+      required: true
+
+  - type: textarea
+    id: permission
+    attributes:
+      label: Permission details
+      description: >
+        If commentary is included, who granted permission, when, and on what
+        terms? A licence name is fine if the material was published under one.
+        Leave blank if there is no commentary.
+
+  - type: checkboxes
+    id: acknowledgements
+    attributes:
+      label: Before you submit
+      options:
+        - label: >
+            I understand that choreography itself is not copyrightable, but that
+            written commentary remains the property of its author and cannot be
+            included without recorded permission.
+          required: true
+        - label: >
+            I understand that published collections are immutable — corrections
+            ship as a new version rather than an edit.
+          required: true

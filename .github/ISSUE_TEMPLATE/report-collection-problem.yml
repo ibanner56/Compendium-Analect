@@ -1,0 +1,45 @@
+name: Report a collection problem
+description: Something is wrong in a published collection.
+title: "[Problem]: "
+labels: ["type: bug", "status: triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Because collections are immutable, the fix is a **new version** rather
+        than an edit — but reporting it is still exactly the right thing to do.
+
+        **If this is a copyright, attribution, or permission problem**, please
+        email **compendium@contra.dance** instead of filing here, so it can be
+        handled without a public thread.
+
+  - type: input
+    id: collection
+    attributes:
+      label: Which collection and version?
+      placeholder: e.g. "example-2"
+    validations:
+      required: true
+
+  - type: input
+    id: dance
+    attributes:
+      label: Which dance?
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What's wrong?
+      description: What does it say, and what should it say?
+    validations:
+      required: true
+
+  - type: textarea
+    id: source
+    attributes:
+      label: What are you checking against?
+      description: >
+        The published source, your own notes, the choreographer directly? This
+        helps establish which version is right.

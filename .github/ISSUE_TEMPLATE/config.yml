@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Copyright, attribution, or permission concern
+    url: mailto:compendium@contra.dance
+    about: Please email rather than opening a public issue. These are handled urgently.
+  - name: Security vulnerability
+    url: https://github.com/ibanner56/Compendium-Analect/security/advisories/new
+    about: Report privately via a security advisory — never a public issue.
+  - name: A problem with the app itself
+    url: https://github.com/ibanner56/CallersCompendium/issues
+    about: Bugs in Caller's Compendium belong in the app's repository.
