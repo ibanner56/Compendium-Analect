@@ -15,6 +15,9 @@ everywhere in this project.
 - **Never edit a published collection.** Corrections ship as a new version.
 - **Be honest about sources.** Where a dance came from, and who wrote it, is
   part of the record.
+- **Know what you are and aren't granting.** Contributing a collection is not a
+  copyright grant — for choreography there is nothing to grant. See
+  [LICENSING.md](LICENSING.md).
 
 ## What a collection may contain
 

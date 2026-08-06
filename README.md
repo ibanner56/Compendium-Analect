@@ -86,6 +86,21 @@ collection needs, what it may not contain, and how permission is recorded.
 Please read the [Code of Conduct](CODE_OF_CONDUCT.md) before taking part, and
 [SECURITY.md](SECURITY.md) if you have found something exploitable.
 
+## Licensing
+
+Two different kinds of thing live here, and one licence cannot cover both — read
+[LICENSING.md](LICENSING.md) rather than trusting the repository badge.
+
+- **Software** (pipeline, CI, the site in `site/`) — **AGPL-3.0**, per [`LICENSE`](LICENSE).
+- **Choreography** — not copyrightable, so there is no licence to apply and none
+  is asserted.
+- **Written commentary** — remains its author's, governed by the permission or
+  licence each collection declares.
+
+`LICENSE` holds the AGPL text because that is what GitHub's detection reads. It
+covers the software here; it does **not** place any published collection under
+the AGPL.
+
 ## Related
 
 - [Caller's Compendium](https://github.com/ibanner56/CallersCompendium) — the app
