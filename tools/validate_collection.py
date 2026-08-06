@@ -1,0 +1,305 @@
+#!/usr/bin/env python3
+"""Merge gate for published collections.
+
+Runs on every pull request. Refuses a collection that carries written
+commentary without a permission declaration covering it, that mutates an
+already-published collection, or that contains any field this gate has not
+been taught to classify.
+
+Pure stdlib on purpose: this repository publishes archives, not tooling, and a
+gate that needed the Dart SDK would be a gate people are tempted to skip.
+
+CallersCompendium#862 is the authoritative design record.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import pathlib
+import re
+import subprocess
+import sys
+
+# --- Field classification -------------------------------------------------
+#
+# Exhaustive over every key the app's `encodeArchive` emits for a dance. The
+# gate is driven by the keys actually present in the submitted file, so an
+# archive produced by a newer app carrying a field absent from this table
+# FAILS rather than shipping unreviewed. Do not add a key here without
+# deciding what it is.
+
+CHOREOGRAPHY = "choreography"   # publishable: choreography is not copyrightable
+ATTRIBUTION = "attribution"     # publishable: facts about authorship/publication
+COMMENTARY = "commentary"       # NOT publishable without a permission declaration
+LOCAL = "local"                 # meaningless in someone else's collection
+
+DANCE_FIELDS = {
+    "id": CHOREOGRAPHY,
+    "title": CHOREOGRAPHY,
+    "form": CHOREOGRAPHY,
+    "formation": CHOREOGRAPHY,
+    "progression": CHOREOGRAPHY,
+    "phraseStructure": CHOREOGRAPHY,
+    "figures": CHOREOGRAPHY,
+    "mixer": CHOREOGRAPHY,
+    "authorIds": ATTRIBUTION,
+    "sourceCitations": ATTRIBUTION,
+    "composedOn": ATTRIBUTION,
+    "revisedOn": ATTRIBUTION,
+    "provenance": ATTRIBUTION,
+    "hook": COMMENTARY,
+    "callingNotes": COMMENTARY,
+    "walkthrough": COMMENTARY,
+    "customFields": COMMENTARY,
+    "links": COMMENTARY,
+    "tunes": COMMENTARY,
+    "status": LOCAL,
+    "level": LOCAL,
+    "mixedLevel": LOCAL,
+    "rating": LOCAL,
+    "tagIds": LOCAL,
+    "createdAt": LOCAL,
+    "updatedAt": LOCAL,
+    "deletedAt": LOCAL,
+}
+
+COMMENTARY_FIELDS = {k for k, v in DANCE_FIELDS.items() if v == COMMENTARY}
+
+# A collection directory's version suffix is visible in the path on purpose,
+# so which version something is can be read off a file path alone.
+COLLECTION_DIR = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*-(\d+)$")
+
+
+class Failure(Exception):
+    pass
+
+
+def fail(msg: str) -> None:
+    raise Failure(msg)
+
+
+def is_present(value) -> bool:
+    """Whether a field actually carries content."""
+    if value is None or value is False:
+        return False
+    if isinstance(value, str):
+        return value.strip() != ""
+    if isinstance(value, (list, dict)):
+        return len(value) > 0
+    return True
+
+
+# --- Permission declarations ---------------------------------------------
+
+REQUIRED_DECLARATION_KEYS = {"grantedBy", "role", "date", "terms", "coversFields"}
+
+
+def load_declaration(path: pathlib.Path):
+    if not path.exists():
+        return None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        fail(f"{path}: not valid JSON ({exc})")
+    if not isinstance(data, dict):
+        fail(f"{path}: expected a JSON object")
+
+    missing = REQUIRED_DECLARATION_KEYS - data.keys()
+    if missing:
+        fail(f"{path}: declaration missing required key(s): {sorted(missing)}")
+
+    covers = data["coversFields"]
+    if not isinstance(covers, list) or not covers:
+        fail(f"{path}: coversFields must be a non-empty list")
+    unknown = [f for f in covers if f not in COMMENTARY_FIELDS]
+    if unknown:
+        fail(
+            f"{path}: coversFields names field(s) that are not commentary: "
+            f"{unknown}. Only {sorted(COMMENTARY_FIELDS)} need a declaration."
+        )
+    for key in ("grantedBy", "role", "terms"):
+        if not isinstance(data[key], str) or not data[key].strip():
+            fail(f"{path}: '{key}' must be a non-empty string")
+    if not re.match(r"^\d{4}-\d{2}-\d{2}$", str(data["date"])):
+        fail(f"{path}: 'date' must be YYYY-MM-DD, got {data['date']!r}")
+    return data
+
+
+# --- Archive validation ---------------------------------------------------
+
+
+def validate_archive(archive_path: pathlib.Path, declaration):
+    notes = []
+    try:
+        archive = json.loads(archive_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        fail(f"{archive_path}: not valid JSON ({exc})")
+    if not isinstance(archive, dict):
+        fail(f"{archive_path}: expected a JSON object")
+    if "schemaVersion" not in archive:
+        fail(f"{archive_path}: missing schemaVersion")
+
+    dances = archive.get("dances")
+    if not isinstance(dances, list) or not dances:
+        fail(f"{archive_path}: archive contains no dances")
+
+    covered = set(declaration["coversFields"]) if declaration else set()
+    uncovered = {}
+    unclassified = set()
+    figure_notes = 0
+
+    for dance in dances:
+        if not isinstance(dance, dict):
+            fail(f"{archive_path}: a dance entry is not an object")
+        title = dance.get("title", "<untitled>")
+
+        for key, value in dance.items():
+            kind = DANCE_FIELDS.get(key)
+            if kind is None:
+                unclassified.add(key)
+                continue
+            if kind == COMMENTARY and is_present(value) and key not in covered:
+                uncovered.setdefault(key, []).append(title)
+
+        for figure in dance.get("figures") or []:
+            if isinstance(figure, dict) and is_present(figure.get("note")):
+                figure_notes += 1
+
+    if unclassified:
+        fail(
+            f"{archive_path}: unclassified dance field(s): {sorted(unclassified)}.\n"
+            "  The app has added a field this gate has not been taught to judge.\n"
+            "  Classify it in DANCE_FIELDS before publishing anything. Do NOT\n"
+            "  delete the field from the archive to make this pass."
+        )
+
+    if uncovered:
+        lines = [f"{archive_path}: written commentary with no permission covering it:"]
+        for field, titles in sorted(uncovered.items()):
+            shown = ", ".join(titles[:3])
+            more = f" (+{len(titles) - 3} more)" if len(titles) > 3 else ""
+            lines.append(f"  - {field}: {len(titles)} dance(s) - {shown}{more}")
+        lines.append("")
+        lines.append(
+            "  Choreography is not copyrightable; the author's prose is. Either\n"
+            "  remove this content, or add permission.json declaring who granted\n"
+            "  permission and on what terms, with coversFields naming each field\n"
+            "  above. The gate never strips content for you - a silent strip would\n"
+            "  let you believe you had published notes that had in fact vanished."
+        )
+        fail("\n".join(lines))
+
+    if figure_notes:
+        # Figure notes are transcription (a source's own figure-line text such
+        # as "face next", or a compound's shorthand parent name), so they are
+        # classified as choreography. The gate cannot tell transcription from
+        # prose smuggled into the same slot, so it surfaces the count for a
+        # human reviewer rather than guessing either way.
+        notes.append(
+            f"{figure_notes} figure note(s) present - transcription, not gated. "
+            "Reviewer: confirm none are author commentary."
+        )
+    return notes
+
+
+# --- Immutability ---------------------------------------------------------
+
+
+def check_immutability(base_ref: str):
+    """A published collection is never edited or deleted (decision 4)."""
+    try:
+        out = subprocess.run(
+            ["git", "diff", "--name-status", f"{base_ref}...HEAD", "--", "collections/"],
+            capture_output=True, text=True, check=True,
+        ).stdout
+    except subprocess.CalledProcessError as exc:
+        fail(f"could not diff against {base_ref}: {exc.stderr.strip()}")
+
+    existing = set(
+        subprocess.run(
+            ["git", "ls-tree", "-r", "--name-only", base_ref, "collections/"],
+            capture_output=True, text=True, check=True,
+        ).stdout.split()
+    )
+
+    violations = []
+    for line in out.splitlines():
+        parts = line.split("\t")
+        status, path = parts[0], parts[-1]
+        if status.startswith("A"):
+            continue  # a new file in a new collection is the normal case
+        if path in existing:
+            violations.append(f"  {status} {path}")
+
+    if violations:
+        fail(
+            "published collections are immutable - these files already exist on "
+            f"{base_ref}:\n" + "\n".join(violations) +
+            "\n\n  Publish a correction as a NEW version directory instead. A "
+            "digest that\n  stays valid forever, and a user's record of what they "
+            "imported, both\n  depend on this."
+        )
+    return []
+
+
+# --- Entry point ----------------------------------------------------------
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--base-ref", default="", help="git ref to compare against")
+    parser.add_argument("--root", default=".", help="repository root")
+    args = parser.parse_args()
+
+    root = pathlib.Path(args.root)
+    collections = root / "collections"
+    failures = []
+
+    dirs = sorted(p for p in collections.iterdir() if p.is_dir()) if collections.is_dir() else []
+    if not dirs:
+        print("no collections present; nothing to validate")
+    for directory in dirs:
+        print(f"\n=== {directory.name} ===")
+        try:
+            if not COLLECTION_DIR.match(directory.name):
+                fail(
+                    f"collections/{directory.name}: name must end in a visible "
+                    "version suffix, e.g. 'barnes-1'"
+                )
+            archive = directory / "archive.json"
+            if not archive.exists():
+                fail(f"{directory}: missing archive.json")
+            declaration = load_declaration(directory / "permission.json")
+            got = validate_archive(archive, declaration)
+            if declaration:
+                print(
+                    f"  permission: {declaration['grantedBy']} "
+                    f"({declaration['role']}) covers {declaration['coversFields']}"
+                )
+            for note in got:
+                print(f"  note: {note}")
+            print("  OK")
+        except Failure as exc:
+            print(f"  FAIL: {exc}")
+            failures.append(directory.name)
+
+    if args.base_ref:
+        print("\n=== immutability ===")
+        try:
+            check_immutability(args.base_ref)
+            print("  OK - no published collection was modified or deleted")
+        except Failure as exc:
+            print(f"  FAIL: {exc}")
+            failures.append("immutability")
+
+    print()
+    if failures:
+        print(f"GATE FAILED: {', '.join(failures)}")
+        return 1
+    print(f"GATE PASSED: {len(dirs)} collection(s)")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
