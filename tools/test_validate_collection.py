@@ -81,6 +81,49 @@ class GateTest(unittest.TestCase):
     def test_choreography_only_passes(self):
         validate_archive(self.write_archive(dance()), None)
 
+    def test_figure_note_count_sees_inside_a_meanwhile(self):
+        # The count is reviewer-facing: a human confirms "none of these are
+        # author commentary" against it. A top-level-only walk cannot see a
+        # note on either side of a `meanwhile`, which hid 11 of 87 notes on the
+        # first real collection -- silently shrinking what the reviewer was
+        # actually confirming.
+        archive = self.write_archive(
+            dance(
+                figures=[
+                    {
+                        "schemaVersion": 1,
+                        "move": "swing",
+                        "params": {"beats": 8},
+                        "note": "top-level note",
+                    },
+                    {
+                        "schemaVersion": 1,
+                        "move": "meanwhile",
+                        "params": {
+                            "beats": 8,
+                            "figures": [
+                                {
+                                    "schemaVersion": 1,
+                                    "move": "allemande",
+                                    "params": {"beats": 8},
+                                    "note": "nested note one",
+                                },
+                                {
+                                    "schemaVersion": 1,
+                                    "move": "star",
+                                    "params": {"beats": 8},
+                                    "note": "nested note two",
+                                },
+                            ],
+                        },
+                    },
+                ]
+            )
+        )
+        notes = validate_archive(archive, None)
+        self.assertTrue(notes, "expected a figure-note note")
+        self.assertIn("3 figure note(s)", notes[0])
+
     def test_commentary_passes_when_declared(self):
         archive = self.write_archive(dance(callingNotes="robins look right"))
         decl = load_declaration(self.write_declaration())

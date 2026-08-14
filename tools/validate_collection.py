@@ -129,6 +129,30 @@ def load_declaration(path: pathlib.Path):
 # --- Archive validation ---------------------------------------------------
 
 
+def _count_notes(figures) -> int:
+    """Count figure notes, descending into `meanwhile` containers.
+
+    A `meanwhile` figure holds its simultaneous sides in `params.figures`, so a
+    top-level-only walk cannot see a note attached to either side. On the first
+    real collection that hid 11 of 87 notes.
+
+    This number is reviewer-facing: it is the basis on which a human confirms
+    that no note is author commentary. An undercount here does not fail the
+    gate loudly, it quietly shrinks what the reviewer believes they are
+    confirming -- which is the worse failure, because it looks like diligence.
+    """
+    total = 0
+    for figure in figures or []:
+        if not isinstance(figure, dict):
+            continue
+        if is_present(figure.get("note")):
+            total += 1
+        params = figure.get("params")
+        if isinstance(params, dict):
+            total += _count_notes(params.get("figures"))
+    return total
+
+
 def validate_archive(archive_path: pathlib.Path, declaration):
     notes = []
     try:
@@ -162,9 +186,7 @@ def validate_archive(archive_path: pathlib.Path, declaration):
             if kind == COMMENTARY and is_present(value) and key not in covered:
                 uncovered.setdefault(key, []).append(title)
 
-        for figure in dance.get("figures") or []:
-            if isinstance(figure, dict) and is_present(figure.get("note")):
-                figure_notes += 1
+        figure_notes += _count_notes(dance.get("figures") or [])
 
     if unclassified:
         fail(
