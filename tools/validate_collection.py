@@ -186,7 +186,15 @@ def validate_archive(archive_path: pathlib.Path, declaration):
             if kind == COMMENTARY and is_present(value) and key not in covered:
                 uncovered.setdefault(key, []).append(title)
 
-        figure_notes += _count_notes(dance.get("figures") or [])
+        raw_figures = dance.get("figures")
+        if raw_figures is not None and not isinstance(raw_figures, list):
+            fail(
+                f"{archive_path}: dance '{title}' has a malformed 'figures' "
+                f"value (expected a list, got {type(raw_figures).__name__}). "
+                "The figure-note count is reviewer-facing; an unexpected type "
+                "must be fixed rather than silently ignored."
+            )
+        figure_notes += _count_notes(raw_figures or [])
 
     if unclassified:
         fail(
@@ -248,11 +256,17 @@ def check_immutability(base_ref: str):
     violations = []
     for line in out.splitlines():
         parts = line.split("\t")
-        status, path = parts[0], parts[-1]
+        status = parts[0]
         if status.startswith("A"):
             continue  # a new file in a new collection is the normal case
-        if path in existing:
-            violations.append(f"  {status} {path}")
+        # For rename (Rxxx) and copy (Cxxx) lines git emits two paths:
+        # old-path and new-path. We check both: the old path was a published
+        # file being renamed/moved (immutability violation), and the new path
+        # could overwrite one.
+        paths_to_check = parts[1:]  # one path for M/D, two for R/C
+        for path in paths_to_check:
+            if path in existing:
+                violations.append(f"  {status} {path}")
 
     if violations:
         fail(

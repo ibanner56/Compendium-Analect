@@ -31,6 +31,8 @@ jobs:
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             git fetch --no-tags origin "${{ github.base_ref }}"
             python3 tools/validate_collection.py --base-ref "origin/${{ github.base_ref }}"
+          elif [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+            python3 tools/validate_collection.py --base-ref "${{ github.event.before }}"
           else
             python3 tools/validate_collection.py
           fi
