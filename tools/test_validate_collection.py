@@ -204,10 +204,6 @@ class GateTest(unittest.TestCase):
             self.assertEqual(DANCE_FIELDS[field], "commentary", field)
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 class ImmutabilityTest(unittest.TestCase):
     """Exercises check_immutability() against a real git repository.
 
@@ -292,3 +288,6 @@ class ImmutabilityTest(unittest.TestCase):
         self.write("collections/CONTRIBUTING.md", "# How to contribute\n")
         self.commit("add repo furniture")
         self.assertEqual(check_immutability("main~1"), [])
+
+if __name__ == "__main__":
+    unittest.main()
