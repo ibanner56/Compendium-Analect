@@ -9,7 +9,9 @@ Run: python3 -m unittest discover -s tools -p 'test_*.py'
 """
 
 import json
+import os
 import pathlib
+import subprocess
 import tempfile
 import unittest
 
@@ -17,6 +19,7 @@ from validate_collection import (
     COMMENTARY_FIELDS,
     DANCE_FIELDS,
     Failure,
+    check_immutability,
     load_declaration,
     validate_archive,
 )
@@ -203,3 +206,89 @@ class GateTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ImmutabilityTest(unittest.TestCase):
+    """Exercises check_immutability() against a real git repository.
+
+    These have to use real git: the function's inputs are `git diff
+    --name-status` and `git ls-tree` output, and the status-A branch that
+    handles additions is only ever reached when a diff actually contains an
+    added file under collections/. A fixture that fakes the git output would
+    not have caught the NameError this suite now guards, because the crash
+    needed a genuine "A\tcollections/<published>/..." line to reach it.
+    """
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.repo = pathlib.Path(self._tmp.name)
+        self.addCleanup(self._tmp.cleanup)
+        self._cwd = os.getcwd()
+        self.addCleanup(os.chdir, self._cwd)
+        self.git("init", "-q", "-b", "main")
+        self.git("config", "user.email", "test@example.invalid")
+        self.git("config", "user.name", "Test")
+        os.chdir(self.repo)
+
+    def git(self, *args):
+        return subprocess.run(
+            ["git", "-C", str(self.repo), *args],
+            capture_output=True, text=True, check=True,
+        ).stdout
+
+    def write(self, relpath, text="{}"):
+        path = self.repo / relpath
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+
+    def commit(self, message):
+        self.git("add", "-A")
+        self.git("commit", "-q", "-m", message)
+
+    def publish_baseline(self):
+        """A repo with one published collection, on branch `main`."""
+        self.write("collections/README.md", "# Collections\n")
+        self.write("collections/foda-1/archive.json")
+        self.commit("publish foda-1")
+
+    def test_publishing_a_new_collection_is_allowed(self):
+        self.publish_baseline()
+        self.write("collections/barnes-1/archive.json")
+        self.commit("publish barnes-1")
+        self.assertEqual(check_immutability("main~1"), [])
+
+    # Mutation caught: reverting to the unconditional `continue` on status A,
+    # which is what the gate did originally. A contributor could then add a
+    # file under an already-published collection -- changing what that
+    # collection is, and its digest -- and the gate would not flag it.
+    def test_adding_a_file_to_a_published_collection_FAILS(self):
+        self.publish_baseline()
+        self.write("collections/foda-1/errata.json")
+        self.commit("sneak a file into a published collection")
+        with self.assertRaises(Failure) as caught:
+            check_immutability("main~1")
+        self.assertIn("collections/foda-1/errata.json", str(caught.exception))
+
+    def test_editing_a_published_file_FAILS(self):
+        self.publish_baseline()
+        self.write("collections/foda-1/archive.json", '{"edited": true}')
+        self.commit("edit a published archive")
+        with self.assertRaises(Failure):
+            check_immutability("main~1")
+
+    def test_deleting_a_published_file_FAILS(self):
+        self.publish_baseline()
+        (self.repo / "collections/foda-1/archive.json").unlink()
+        self.commit("delete a published archive")
+        with self.assertRaises(Failure):
+            check_immutability("main~1")
+
+    # `collections/README.md` is repository furniture sitting directly in
+    # collections/, not a published collection. A naive split("/")[1] reads it
+    # as a collection named "README.md"; nothing then matches it, so the error
+    # is silent rather than loud.
+    def test_a_file_directly_in_collections_is_not_a_collection(self):
+        self.publish_baseline()
+        self.write("collections/CONTRIBUTING.md", "# How to contribute\n")
+        self.commit("add repo furniture")
+        self.assertEqual(check_immutability("main~1"), [])

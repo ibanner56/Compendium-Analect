@@ -246,6 +246,20 @@ def validate_archive(archive_path: pathlib.Path, declaration):
 # --- Immutability ---------------------------------------------------------
 
 
+def _collection_of(path: str) -> str:
+    """The collection directory `path` lives in, or "" if it is not in one.
+
+    Only `collections/<name>/<something>` names a collection. A file sitting
+    directly in `collections/` (`collections/README.md`) is repository
+    furniture, not a published collection, and must not be mistaken for one --
+    a naive `split("/")[1]` reads it as a collection called "README.md".
+    """
+    parts = path.split("/")
+    if len(parts) < 3 or parts[0] != "collections":
+        return ""
+    return parts[1]
+
+
 def check_immutability(base_ref: str):
     """A published collection is never edited or deleted (decision 4)."""
     try:
@@ -262,6 +276,11 @@ def check_immutability(base_ref: str):
             capture_output=True, text=True, check=True,
         ).stdout.split()
     )
+    # The collection directories that already exist on base_ref. Immutability
+    # is a property of the whole directory, not just of the files in it: a NEW
+    # file added under an already-published collection changes what that
+    # collection is, and its digest, without touching any existing file.
+    existing_collections = {_collection_of(p) for p in existing} - {""}
 
     violations = []
     for line in out.splitlines():
@@ -269,14 +288,10 @@ def check_immutability(base_ref: str):
         status = parts[0]
         if status.startswith("A"):
             path = parts[1] if len(parts) > 1 else ""
-            collection = (
-                path.split("/", 2)[1]
-                if path.startswith("collections/") and "/" in path
-                else ""
-            )
+            collection = _collection_of(path)
             if collection and collection in existing_collections:
                 violations.append(f"  {status} {path}")
-            continue  # adding files to an already-published collection is a mutation
+            continue  # adding a whole new collection is the normal case
         # For rename (Rxxx) and copy (Cxxx) lines git emits two paths:
         # old-path and new-path. We check both: the old path was a published
         # file being renamed/moved (immutability violation), and the new path
@@ -288,8 +303,9 @@ def check_immutability(base_ref: str):
 
     if violations:
         fail(
-            "published collections are immutable - these files already exist on "
-            f"{base_ref}:\n" + "\n".join(violations) +
+            "published collections are immutable - these changes alter a "
+            f"collection that already exists on {base_ref}:\n" +
+            "\n".join(violations) +
             "\n\n  Publish a correction as a NEW version directory instead. A "
             "digest that\n  stays valid forever, and a user's record of what they "
             "imported, both\n  depend on this."
