@@ -60,7 +60,7 @@ class GateTest(unittest.TestCase):
 
     def write_archive(self, *dances):
         path = self.dir / "archive.json"
-        path.write_text(json.dumps({"schemaVersion": 2, "dances": list(dances)}))
+        path.write_text(json.dumps({"schemaVersion": 2, "dances": list(dances)}), encoding="utf-8")
         return path
 
     def write_declaration(self, **overrides):
@@ -73,7 +73,7 @@ class GateTest(unittest.TestCase):
         }
         data.update(overrides)
         path = self.dir / "permission.json"
-        path.write_text(json.dumps(data))
+        path.write_text(json.dumps(data), encoding="utf-8")
         return path
 
     # --- happy paths ---
@@ -168,6 +168,10 @@ class GateTest(unittest.TestCase):
             "missing key": {"grantedBy": "X"},
             "empty coversFields": {"coversFields": []},
             "non-commentary field": {"coversFields": ["figures"]},
+            # A pasted-in-error non-string entry (e.g. a nested list or
+            # object) is unhashable, so `f not in COMMENTARY_FIELDS` would
+            # raise TypeError and crash the gate instead of refusing cleanly.
+            "unhashable coversFields entry": {"coversFields": [["hook"]]},
             "bad date": {"date": "August 2026"},
             "blank grantor": {"grantedBy": "  "},
         }
@@ -175,7 +179,7 @@ class GateTest(unittest.TestCase):
             with self.subTest(case=name):
                 if name == "missing key":
                     path = self.dir / "permission.json"
-                    path.write_text(json.dumps(overrides))
+                    path.write_text(json.dumps(overrides), encoding="utf-8")
                 else:
                     path = self.write_declaration(**overrides)
                 with self.assertRaises(Failure):
@@ -186,7 +190,7 @@ class GateTest(unittest.TestCase):
 
     def test_archive_must_contain_dances(self):
         path = self.dir / "archive.json"
-        path.write_text(json.dumps({"schemaVersion": 2, "dances": []}))
+        path.write_text(json.dumps({"schemaVersion": 2, "dances": []}), encoding="utf-8")
         with self.assertRaises(Failure):
             validate_archive(path, None)
 

@@ -112,6 +112,16 @@ def load_declaration(path: pathlib.Path):
     covers = data["coversFields"]
     if not isinstance(covers, list) or not covers:
         fail(f"{path}: coversFields must be a non-empty list")
+    # Each entry must be a string before the `in` membership check below: an
+    # unhashable entry (a list or dict a contributor pasted in by mistake)
+    # would otherwise raise TypeError and crash the gate instead of refusing
+    # cleanly, which is the failure mode this validator exists to prevent.
+    non_strings = [f for f in covers if not isinstance(f, str)]
+    if non_strings:
+        fail(
+            f"{path}: coversFields must contain only strings, got "
+            f"{non_strings!r}"
+        )
     unknown = [f for f in covers if f not in COMMENTARY_FIELDS]
     if unknown:
         fail(
