@@ -1,0 +1,38 @@
+name: Collection gate
+
+# Validates every published collection on each pull request.
+#
+# Runs on `pull_request` (NOT `pull_request_target`): a contributor's branch is
+# untrusted content, and `pull_request_target` would run it with a write-scoped
+# token and access to secrets. This job needs neither.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The immutability check diffs against the base branch, so the
+          # merge-base must actually be present in the clone.
+          fetch-depth: 0
+
+      - name: Unit-test the gate itself
+        run: python3 -m unittest discover -s tools -p 'test_*.py' -v
+
+      - name: Validate collections
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git fetch --no-tags origin "${{ github.base_ref }}"
+            python3 tools/validate_collection.py --base-ref "origin/${{ github.base_ref }}"
+          elif [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+            python3 tools/validate_collection.py --base-ref "${{ github.event.before }}"
+          else
+            python3 tools/validate_collection.py
+          fi
