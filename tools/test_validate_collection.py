@@ -243,7 +243,7 @@ class ImmutabilityTest(unittest.TestCase):
 
     def commit(self, message):
         self.git("add", "-A")
-        self.git("commit", "-q", "-m", message)
+        self.git("commit", "--no-gpg-sign", "--no-verify", "-q", "-m", message)
 
     def publish_baseline(self):
         """A repo with one published collection, on branch `main`."""
