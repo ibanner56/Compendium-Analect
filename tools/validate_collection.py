@@ -268,7 +268,15 @@ def check_immutability(base_ref: str):
         parts = line.split("\t")
         status = parts[0]
         if status.startswith("A"):
-            continue  # a new file in a new collection is the normal case
+            path = parts[1] if len(parts) > 1 else ""
+            collection = (
+                path.split("/", 2)[1]
+                if path.startswith("collections/") and "/" in path
+                else ""
+            )
+            if collection and collection in existing_collections:
+                violations.append(f"  {status} {path}")
+            continue  # adding files to an already-published collection is a mutation
         # For rename (Rxxx) and copy (Cxxx) lines git emits two paths:
         # old-path and new-path. We check both: the old path was a published
         # file being renamed/moved (immutability violation), and the new path
