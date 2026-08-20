@@ -12,11 +12,13 @@ python3 -m unittest discover -s tools -p 'test_*.py' -v
 python3 tools/publish_collections.py --no-sign --output /tmp/analect-site
 ```
 
-The Pages workflow runs the same generator with `--sign` in the protected
+The Pages workflow generates the feed in a protected `sign` job using the
 `signing` environment, which supplies the maintainer-held
-`ANALECT_SIGNING_KEY_B64` secret. The decoded value may be PEM, DER, or a raw
-Ed25519 seed. Missing credentials, an invalid key, or a key that does not match
-the app-pinned public key are hard failures.
+`ANALECT_SIGNING_KEY_B64` secret. The generated Pages artifact is then passed to
+a dependent `deploy` job using the standard `github-pages` environment. The
+decoded key value may be PEM, DER, or a raw Ed25519 seed. Missing credentials,
+an invalid key, or a key that does not match the app-pinned public key are hard
+failures.
 
 ## Trust model
 
