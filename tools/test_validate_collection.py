@@ -289,5 +289,17 @@ class ImmutabilityTest(unittest.TestCase):
         self.commit("add repo furniture")
         self.assertEqual(check_immutability("main~1"), [])
 
+    def test_reconciling_an_identical_file_already_on_base_is_allowed(self):
+        self.publish_baseline()
+        self.write("collections/foda-1/collection.json", '{"version": 1}')
+        self.commit("add metadata")
+        self.git("branch", "base")
+        self.git("checkout", "-q", "-b", "head", "HEAD~1")
+        self.write("collections/foda-1/collection.json", '{"version": 1}')
+        self.commit("reconcile metadata")
+        # The test repository's base has the file, while the merge-base does
+        # not. The identical addition must not be mistaken for an edit.
+        self.assertEqual(check_immutability("base"), [])
+
 if __name__ == "__main__":
     unittest.main()
