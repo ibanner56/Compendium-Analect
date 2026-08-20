@@ -291,8 +291,8 @@ def check_immutability(base_ref: str):
             collection = _collection_of(path)
             if collection and collection in existing_collections:
                 # A branch can be based on a commit behind its remote base.
-                # If it adds a byte-identical metadata file that is already on
-                # base_ref, it is a harmless reconciliation, not a mutation.
+                # If it adds an exactly identical metadata file that is already
+                # on base_ref, it is a harmless reconciliation, not a mutation.
                 try:
                     base_blob = subprocess.run(
                         ["git", "rev-parse", f"{base_ref}:{path}"],
@@ -315,7 +315,7 @@ def check_immutability(base_ref: str):
                         head_bytes = pathlib.Path(path).read_bytes()
                     except (subprocess.CalledProcessError, OSError):
                         base_bytes = head_bytes = b""
-                    if base_bytes.rstrip() == head_bytes.rstrip():
+                    if base_bytes == head_bytes:
                         continue
                 violations.append(f"  {status} {path}")
             continue  # adding a whole new collection is the normal case

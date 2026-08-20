@@ -348,5 +348,16 @@ class ImmutabilityTest(unittest.TestCase):
         # not. The identical addition must not be mistaken for an edit.
         self.assertEqual(check_immutability("base"), [])
 
+    def test_reconciling_a_whitespace_difference_FAILS(self):
+        self.publish_baseline()
+        self.write("collections/foda-1/collection.json", '{"version": 1}')
+        self.commit("add metadata")
+        self.git("branch", "base")
+        self.git("checkout", "-q", "-b", "head", "HEAD~1")
+        self.write("collections/foda-1/collection.json", '{"version": 1}' + "\n")
+        self.commit("reconcile metadata with changed bytes")
+        with self.assertRaises(Failure):
+            check_immutability("base")
+
 if __name__ == "__main__":
     unittest.main()

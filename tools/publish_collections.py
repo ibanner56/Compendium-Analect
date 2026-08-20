@@ -555,7 +555,10 @@ def validate_manifest(manifest: dict, artifact_root: pathlib.Path) -> None:
             or any(not isinstance(field, str) or field not in COMMENTARY_FIELDS for field in fields)
             or len(set(fields)) != len(fields)
         ):
-            _fail(f"manifest {identity}: permission.fields is not exhaustive and valid")
+            _fail(
+                f"manifest {identity}: permission.fields must be a list of "
+                "unique commentary field names"
+            )
         if permission.get("license") != entry["license"]:
             _fail(f"manifest {identity}: permission.license must match license")
         if not set(archive_info["commentaryFields"]).issubset(fields):
@@ -653,29 +656,44 @@ def sign_manifest(
             temporary_der = key_path
             with tempfile.NamedTemporaryFile(delete=False) as converted:
                 converted_path = pathlib.Path(converted.name)
+            conversion_succeeded = False
             try:
-                subprocess.run(
-                    [
-                        "openssl",
-                        "pkey",
-                        "-inform",
-                        "DER",
-                        "-in",
-                        str(temporary_der),
-                        "-out",
-                        str(converted_path),
-                    ],
-                    check=True,
-                    capture_output=True,
-                    text=True,
-                )
-            except FileNotFoundError:
-                _fail("openssl is required for Ed25519 signing but was not found")
-            except subprocess.CalledProcessError as exc:
-                _fail(f"{SIGNING_KEY_B64_ENV} is not a PEM or DER private key: {exc.stderr.strip()}")
-            os.chmod(converted_path, 0o600)
-            key_path = converted_path
-            temporary_key = converted_path
+                try:
+                    subprocess.run(
+                        [
+                            "openssl",
+                            "pkey",
+                            "-inform",
+                            "DER",
+                            "-in",
+                            str(temporary_der),
+                            "-out",
+                            str(converted_path),
+                        ],
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                    )
+                except FileNotFoundError:
+                    _fail("openssl is required for Ed25519 signing but was not found")
+                except subprocess.CalledProcessError as exc:
+                    _fail(
+                        f"{SIGNING_KEY_B64_ENV} is not a PEM or DER private key: "
+                        f"{exc.stderr.strip()}"
+                    )
+                except OSError as exc:
+                    _fail(f"could not convert DER signing key: {exc}")
+                try:
+                    os.chmod(converted_path, 0o600)
+                except OSError as exc:
+                    _fail(f"could not protect converted signing key: {exc}")
+                key_path = converted_path
+                temporary_key = converted_path
+                conversion_succeeded = True
+            finally:
+                if not conversion_succeeded:
+                    converted_path.unlink(missing_ok=True)
+                    temporary_der.unlink(missing_ok=True)
     try:
         derived = _public_key_from_private(key_path)
         if derived != public_key_base64:
