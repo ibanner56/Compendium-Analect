@@ -106,7 +106,10 @@ class PublicationTest(unittest.TestCase):
             first_bytes[pathlib.Path("collections/foda-1-1/archive.json")],
             second_bytes[pathlib.Path("collections/foda-1-1/archive.json")],
         )
-        self.assertEqual(first["entries"][0]["archiveBytes"], 72569)
+        self.assertEqual(
+            first["entries"][0]["archiveBytes"],
+            len(first_bytes[pathlib.Path("collections/foda-1-1/archive.json")]),
+        )
 
     def test_signature_verifies_and_wrong_key_is_refused(self):
         key = self.root / "ed25519.pem"
@@ -198,6 +201,16 @@ class PublicationTest(unittest.TestCase):
 
     def test_permission_coverage_and_custom_content_fail_before_generation(self):
         raw = json.loads((SAMPLE / "archive.json").read_text(encoding="utf-8"))
+        for dance in raw["dances"]:
+            dance.update(
+                {
+                    "hook": "",
+                    "callingNotes": "",
+                    "walkthrough": "",
+                    "links": [],
+                    "tunes": [],
+                }
+            )
         raw["dances"][0]["hook"] = "permission-sensitive prose"
         path = self.root / "archive.json"
         path.write_bytes(_json_bytes(raw))
