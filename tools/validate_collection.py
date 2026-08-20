@@ -290,7 +290,7 @@ def check_immutability(base_ref: str):
             path = parts[1] if len(parts) > 1 else ""
             collection = _collection_of(path)
             if collection and collection in existing_collections:
-                # A branch can be based one commit behind its remote base.
+                # A branch can be based on a commit behind its remote base.
                 # If it adds a byte-identical metadata file that is already on
                 # base_ref, it is a harmless reconciliation, not a mutation.
                 try:

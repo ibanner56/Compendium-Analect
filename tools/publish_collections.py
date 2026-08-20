@@ -827,14 +827,27 @@ def main() -> int:
     parser.add_argument("--collections-root", type=pathlib.Path, default=pathlib.Path("collections"))
     parser.add_argument("--output", type=pathlib.Path, default=pathlib.Path("site"))
     parser.add_argument("--signing-key", type=pathlib.Path)
-    parser.add_argument("--no-sign", action="store_true", help="generate artifacts without a signature (local tests only)")
+    signing = parser.add_mutually_exclusive_group()
+    signing.add_argument(
+        "--sign",
+        dest="sign",
+        action="store_true",
+        default=True,
+        help="sign the manifest (the default)",
+    )
+    signing.add_argument(
+        "--no-sign",
+        dest="sign",
+        action="store_false",
+        help="generate artifacts without a signature (local tests only)",
+    )
     args = parser.parse_args()
     try:
         result = generate(
             args.collections_root,
             args.output,
             signing_key=args.signing_key,
-            sign=not args.no_sign,
+            sign=args.sign,
         )
     except PublicationFailure as exc:
         print(f"PUBLICATION FAILED: {exc}", file=sys.stderr)

@@ -90,7 +90,7 @@ class PublicationTest(unittest.TestCase):
             if path.is_file()
         }
         other = pathlib.Path(self.tmp.name) / "other"
-        shutil.copytree(SAMPLE.parent, other / "collections")
+        shutil.copytree(SAMPLE, other / "collections" / SAMPLE.name)
         (other / "site").mkdir()
         generate(other / "collections", other / "site", sign=False)
         second_bytes = {
