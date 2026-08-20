@@ -27,7 +27,7 @@ from validate_collection import COMMENTARY_FIELDS, Failure, is_present, load_dec
 ORIGIN = "https://analect.callerscompendium.com"
 MANIFEST_PATH = "collections/manifest.json"
 SIGNATURE_PATH = "collections/manifest.json.sig"
-PINNED_PUBLIC_KEY = "pvJMNnRrOkSoTUEgPtiUxwDobjEpCKQ3TtELzhjsBww="
+PINNED_PUBLIC_KEY = "wT1TeOTv4opmfWstQXB8mFnLQEPgfQTKqR95ipYqaHk="
 SIGNING_KEY_B64_ENV = "ANALECT_SIGNING_KEY_B64"
 ED25519_PKCS8_PREFIX = bytes.fromhex("302e020100300506032b657004220420")
 MANIFEST_SCHEMA = {"major": 1, "minor": 0}
