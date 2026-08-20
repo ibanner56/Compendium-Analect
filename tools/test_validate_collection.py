@@ -24,6 +24,9 @@ from validate_collection import (
     validate_archive,
 )
 
+REPO_ROOT = pathlib.Path(__file__).resolve().parents[1]
+FODA_DIR = REPO_ROOT / "collections" / "foda-1-1"
+
 
 def dance(**overrides):
     base = {
@@ -131,6 +134,44 @@ class GateTest(unittest.TestCase):
         archive = self.write_archive(dance(callingNotes="robins look right"))
         decl = load_declaration(self.write_declaration())
         validate_archive(archive, decl)
+
+    def test_foda_permission_declaration_passes_for_archive(self):
+        declaration = load_declaration(FODA_DIR / "permission.json")
+        self.assertEqual(declaration["grantedBy"], "Isaac Banner")
+        self.assertEqual(declaration["terms"], "CC0-1.0")
+        self.assertEqual(
+            declaration["coversFields"],
+            ["callingNotes", "walkthrough", "links"],
+        )
+        validate_archive(FODA_DIR / "archive.json", declaration)
+
+    def test_incomplete_foda_permission_coverage_FAILS(self):
+        declaration = load_declaration(FODA_DIR / "permission.json")
+        declaration["coversFields"] = ["callingNotes", "walkthrough"]
+        with self.assertRaises(Failure) as ctx:
+            validate_archive(FODA_DIR / "archive.json", declaration)
+        self.assertIn("links", str(ctx.exception))
+
+    def test_collection_json_cannot_substitute_for_permission_FAILS(self):
+        archive = self.write_archive(dance(callingNotes="written commentary"))
+        (self.dir / "collection.json").write_text(
+            json.dumps(
+                {
+                    "collectionId": "foda-1",
+                    "version": "1",
+                    "permission": {
+                        "grantedBy": "Isaac Banner",
+                        "termsUrl": "https://contra.dance/foda",
+                        "coversFields": ["callingNotes"],
+                    },
+                }
+            ),
+            encoding="utf-8",
+        )
+        declaration = load_declaration(self.dir / "permission.json")
+        self.assertIsNone(declaration)
+        with self.assertRaises(Failure):
+            validate_archive(archive, declaration)
 
     # --- the refusals ---
 
