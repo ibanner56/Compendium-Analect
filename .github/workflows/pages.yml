@@ -31,8 +31,6 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 # One deploy at a time; don't cancel a half-finished publish.
 concurrency:
@@ -40,18 +38,17 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
-    name: Publish site
+  sign:
+    name: Build signed collection feed
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      name: signing
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/configure-pages@v5
-
-      - name: Build signed collection feed
+      - name: Generate signed collection feed
         env:
           ANALECT_SIGNING_KEY_B64: ${{ secrets.ANALECT_SIGNING_KEY_B64 }}
         run: |
@@ -64,6 +61,19 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: site
+
+  deploy:
+    name: Deploy site
+    needs: sign
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/configure-pages@v5
 
       - name: Deploy
         id: deployment
