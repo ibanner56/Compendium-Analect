@@ -133,6 +133,17 @@ class PublicationTest(unittest.TestCase):
             public_key_base64=public,
         )
         self.assertTrue(verify_signature(manifest, encoded_signature, public))
+        der = subprocess.run(
+            ["openssl", "pkey", "-in", str(key), "-outform", "DER"],
+            check=True,
+            capture_output=True,
+        ).stdout
+        raw_seed_signature = sign_manifest(
+            manifest,
+            key_b64=base64.b64encode(der[-32:]).decode("ascii"),
+            public_key_base64=public,
+        )
+        self.assertTrue(verify_signature(manifest, raw_seed_signature, public))
         with self.assertRaisesRegex(PublicationFailure, "signing credentials unavailable"):
             sign_manifest(manifest)
         self.assertNotEqual(public, PINNED_PUBLIC_KEY)
