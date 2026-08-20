@@ -29,6 +29,7 @@ MANIFEST_PATH = "collections/manifest.json"
 SIGNATURE_PATH = "collections/manifest.json.sig"
 PINNED_PUBLIC_KEY = "pvJMNnRrOkSoTUEgPtiUxwDobjEpCKQ3TtELzhjsBww="
 SIGNING_KEY_B64_ENV = "ANALECT_SIGNING_KEY_B64"
+ED25519_PKCS8_PREFIX = bytes.fromhex("302e020100300506032b657004220420")
 MANIFEST_SCHEMA = {"major": 1, "minor": 0}
 MIN_READER_VERSION = "0.1.0"
 COLLECTION_DIR = re.compile(r"^(?P<id>[a-z0-9]+(?:-[a-z0-9]+)*)-(?P<suffix>[0-9]+)$")
@@ -621,6 +622,14 @@ def _decode_signing_key(key_b64: str) -> bytes:
         _fail(f"{SIGNING_KEY_B64_ENV} is not valid base64")
 
 
+def _normalize_base64_signing_key(key_bytes: bytes) -> bytes:
+    if len(key_bytes) in (32, 64):
+        # Accept the raw seed form commonly produced by Ed25519 tooling.
+        # A 64-byte libsodium secret key contains the same seed first.
+        return ED25519_PKCS8_PREFIX + key_bytes[:32]
+    return key_bytes
+
+
 def sign_manifest(
     manifest_bytes: bytes,
     *,
@@ -646,6 +655,8 @@ def sign_manifest(
             if key_b64 is not None
             else (key_text or "").encode("utf-8")
         )
+        if key_b64 is not None:
+            key_bytes = _normalize_base64_signing_key(key_bytes)
         with tempfile.NamedTemporaryFile(mode="wb", delete=False) as key:
             key.write(key_bytes)
             key.flush()
@@ -679,7 +690,7 @@ def sign_manifest(
                 except subprocess.CalledProcessError as exc:
                     _fail(
                         f"{SIGNING_KEY_B64_ENV} is not a PEM or DER private key: "
-                        f"{exc.stderr.strip()}"
+                        f"{exc.stderr.strip()} (raw Ed25519 seeds are also accepted)"
                     )
                 except OSError as exc:
                     _fail(f"could not convert DER signing key: {exc}")

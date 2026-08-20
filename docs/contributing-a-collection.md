@@ -87,7 +87,7 @@ that a maintainer **reviewed and approved** the archive and that its
 provenance is clean — so it is applied after review, never automatically on
 merge.
 
-The Pages workflow reads base64-encoded private Ed25519 key material from the
-`ANALECT_SIGNING_KEY_B64` Actions secret. Do not add a key to a pull
+The Pages workflow reads base64-encoded PEM, DER, or raw Ed25519 seed
+material from the `ANALECT_SIGNING_KEY_B64` Actions secret. Do not add a key to a pull
 request or local repository; unsigned local generation uses
 `tools/publish_collections.py --no-sign`.
