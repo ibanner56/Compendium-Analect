@@ -36,3 +36,6 @@ jobs:
           else
             python3 tools/validate_collection.py
           fi
+
+      - name: Validate generated v1 publication artifacts
+        run: python3 tools/publish_collections.py --no-sign --output /tmp/analect-site

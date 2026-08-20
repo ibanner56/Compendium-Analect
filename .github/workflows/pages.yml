@@ -5,9 +5,9 @@
 # share its gh-pages branch — the landing page and the release pipeline's update
 # manifests — so a whole-site replace would clobber one of them.
 #
-# This repository has no such split: the site AND (in future) the collection
-# manifest are both generated from content tracked here, so a single artifact is
-# the complete published state. That avoids the entire preserve/prune class of
+# This repository has no such split: the site, generated collection archives,
+# manifest, and signature are all one artifact generated from content tracked
+# here. That avoids the entire preserve/prune class of
 # bug the app repo has to guard against.
 #
 # CUSTOM DOMAIN: once DNS for analect.callerscompendium.com is live and the
@@ -24,6 +24,8 @@ on:
     branches: [main]
     paths:
       - site/**
+      - collections/**
+      - tools/publish_collections.py
       - .github/workflows/pages.yml
   workflow_dispatch: {}
 
@@ -49,7 +51,16 @@ jobs:
 
       - uses: actions/configure-pages@v5
 
-      - name: Upload site
+      - name: Build signed collection feed
+        env:
+          ANALECT_SIGNING_KEY_B64: ${{ secrets.ANALECT_SIGNING_KEY_B64 }}
+        run: |
+          python3 tools/publish_collections.py --sign --output site
+          test -s site/collections/manifest.json
+          test -s site/collections/manifest.json.sig
+          test -s site/collections/foda-1-1/archive.json
+
+      - name: Upload site and collection feed
         uses: actions/upload-pages-artifact@v3
         with:
           path: site

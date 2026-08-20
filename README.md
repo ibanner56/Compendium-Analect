@@ -8,11 +8,11 @@ Published collections of contra dance choreography, prepared for import into
 
 Served from **<https://analect.callerscompendium.com/>**.
 
-> **Status: early setup.** The repository structure and its governance are in
-> place; the publishing pipeline (signing, manifest generation, and the content
-> gate) is being implemented under
-> [CallersCompendium#862](https://github.com/ibanner56/CallersCompendium/issues/862).
-> Nothing is published yet.
+> **Status: published.** The `foda-1-1` collection is available through the
+> signed feed at
+> [`collections/manifest.json`](https://analect.callerscompendium.com/collections/manifest.json).
+> The Pages workflow generates the feed and immutable archives after the
+> publication gate passes.
 
 *Analect* — from the Greek *analekta*, "things gathered up": a collection of
 passages gathered from a larger body of work.
@@ -41,6 +41,12 @@ app as soon as it is published here.
 The signing key used here is **separate from the one that signs application
 updates**, so a problem with collection publishing can never affect update
 delivery.
+
+The manifest carries the app-owned permission declaration and required
+capabilities. The current v1 archive boundary is deliberately narrow: dances
+and referenced choreographers only. Programs, venues, published sources, tags,
+custom fields, source citations, and embedded published-collection provenance
+are not published.
 
 ## Collections are immutable
 

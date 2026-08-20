@@ -290,6 +290,33 @@ def check_immutability(base_ref: str):
             path = parts[1] if len(parts) > 1 else ""
             collection = _collection_of(path)
             if collection and collection in existing_collections:
+                # A branch can be based on a commit behind its remote base.
+                # If it adds an exactly identical metadata file that is already
+                # on base_ref, it is a harmless reconciliation, not a mutation.
+                try:
+                    base_blob = subprocess.run(
+                        ["git", "rev-parse", f"{base_ref}:{path}"],
+                        capture_output=True, text=True, check=True,
+                    ).stdout.strip()
+                    head_blob = subprocess.run(
+                        ["git", "rev-parse", f"HEAD:{path}"],
+                        capture_output=True, text=True, check=True,
+                    ).stdout.strip()
+                except subprocess.CalledProcessError:
+                    base_blob = head_blob = ""
+                if base_blob and base_blob == head_blob:
+                    continue
+                if path.endswith(("collection.json", "permission.json")):
+                    try:
+                        base_bytes = subprocess.run(
+                            ["git", "show", f"{base_ref}:{path}"],
+                            capture_output=True, check=True,
+                        ).stdout
+                        head_bytes = pathlib.Path(path).read_bytes()
+                    except (subprocess.CalledProcessError, OSError):
+                        base_bytes = head_bytes = b""
+                    if base_bytes == head_bytes:
+                        continue
                 violations.append(f"  {status} {path}")
             continue  # adding a whole new collection is the normal case
         # For rename (Rxxx) and copy (Cxxx) lines git emits two paths:
@@ -298,6 +325,8 @@ def check_immutability(base_ref: str):
         # could overwrite one.
         paths_to_check = parts[1:]  # one path for M/D, two for R/C
         for path in paths_to_check:
+            if not _collection_of(path):
+                continue
             if path in existing:
                 violations.append(f"  {status} {path}")
 

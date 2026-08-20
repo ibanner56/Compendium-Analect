@@ -6,7 +6,8 @@ version suffix** (`barnes-1`, `barnes-2`), containing:
 ```
 collections/<id>-<version>/
   archive.json        required — a Caller's Compendium archive
-  permission.json     required ONLY if the archive carries written commentary
+  collection.json     required — immutable id, SemVer version, title, licence
+  permission.json     required — manifest permission and commentary coverage
 ```
 
 Open a pull request. The **Collection gate** runs automatically and must pass.
@@ -33,6 +34,13 @@ it in `DANCE_FIELDS` — do not delete the field from your archive to get green.
 immutable. Publish a correction as a new version directory. This is what lets
 a digest stay valid forever and keeps a user's record of what they imported
 permanently true.
+
+The v1 publication archive contains dances and referenced choreographers only.
+Non-empty programs, venues, published sources, tags, top-level custom fields,
+dance custom fields, and source citations are rejected, as are unknown
+top-level entities, missing or duplicate dance ids, unreferenced choreographers,
+and embedded published-collection provenance. Composite phrase structures must
+declare `compositePhraseStructureV1` in `collection.json`.
 
 ## Declaring permission
 
@@ -78,3 +86,8 @@ environment that requires human approval before it runs. The signature asserts
 that a maintainer **reviewed and approved** the archive and that its
 provenance is clean — so it is applied after review, never automatically on
 merge.
+
+The Pages workflow reads base64-encoded private Ed25519 key material from the
+`ANALECT_SIGNING_KEY_B64` Actions secret. Do not add a key to a pull
+request or local repository; unsigned local generation uses
+`tools/publish_collections.py --no-sign`.
