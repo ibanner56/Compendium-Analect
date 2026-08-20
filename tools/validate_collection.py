@@ -325,6 +325,8 @@ def check_immutability(base_ref: str):
         # could overwrite one.
         paths_to_check = parts[1:]  # one path for M/D, two for R/C
         for path in paths_to_check:
+            if not _collection_of(path):
+                continue
             if path in existing:
                 violations.append(f"  {status} {path}")
 

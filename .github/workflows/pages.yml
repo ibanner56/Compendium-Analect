@@ -53,7 +53,7 @@ jobs:
 
       - name: Build signed collection feed
         env:
-          ANALECT_COLLECTION_SIGNING_KEY: ${{ secrets.ANALECT_COLLECTION_SIGNING_KEY }}
+          ANALECT_SIGNING_KEY_B64: ${{ secrets.ANALECT_SIGNING_KEY_B64 }}
         run: |
           python3 tools/publish_collections.py --sign --output site
           test -s site/collections/manifest.json

@@ -28,6 +28,7 @@ ORIGIN = "https://analect.callerscompendium.com"
 MANIFEST_PATH = "collections/manifest.json"
 SIGNATURE_PATH = "collections/manifest.json.sig"
 PINNED_PUBLIC_KEY = "pvJMNnRrOkSoTUEgPtiUxwDobjEpCKQ3TtELzhjsBww="
+SIGNING_KEY_B64_ENV = "ANALECT_SIGNING_KEY_B64"
 MANIFEST_SCHEMA = {"major": 1, "minor": 0}
 MIN_READER_VERSION = "0.1.0"
 COLLECTION_DIR = re.compile(r"^(?P<id>[a-z0-9]+(?:-[a-z0-9]+)*)-(?P<suffix>[0-9]+)$")
@@ -610,28 +611,71 @@ def _public_key_der(public_key_base64: str) -> bytes:
     return bytes.fromhex("302a300506032b6570032100") + raw
 
 
+def _decode_signing_key(key_b64: str) -> bytes:
+    try:
+        return base64.b64decode(key_b64, validate=True)
+    except ValueError:
+        _fail(f"{SIGNING_KEY_B64_ENV} is not valid base64")
+
+
 def sign_manifest(
     manifest_bytes: bytes,
     *,
     key_path: pathlib.Path | None = None,
     key_text: str | None = None,
+    key_b64: str | None = None,
     public_key_base64: str = PINNED_PUBLIC_KEY,
 ) -> str:
     """Return the app-compatible base64 detached signature."""
 
     temporary_key: pathlib.Path | None = None
-    if key_path is None and key_text is None:
+    temporary_der: pathlib.Path | None = None
+    if sum(value is not None for value in (key_path, key_text, key_b64)) > 1:
+        _fail("provide only one signing key source")
+    if key_path is None and key_text is None and key_b64 is None:
         _fail(
             "signing credentials unavailable: set "
-            "ANALECT_COLLECTION_SIGNING_KEY or ANALECT_COLLECTION_SIGNING_KEY_FILE"
+            f"{SIGNING_KEY_B64_ENV} or ANALECT_COLLECTION_SIGNING_KEY_FILE"
         )
     if key_path is None:
-        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", delete=False) as key:
-            key.write(key_text or "")
+        key_bytes = (
+            _decode_signing_key(key_b64)
+            if key_b64 is not None
+            else (key_text or "").encode("utf-8")
+        )
+        with tempfile.NamedTemporaryFile(mode="wb", delete=False) as key:
+            key.write(key_bytes)
             key.flush()
             os.chmod(key.name, 0o600)
             temporary_key = pathlib.Path(key.name)
         key_path = temporary_key
+        if key_b64 is not None and not key_bytes.startswith(b"-----BEGIN"):
+            temporary_der = key_path
+            with tempfile.NamedTemporaryFile(delete=False) as converted:
+                converted_path = pathlib.Path(converted.name)
+            try:
+                subprocess.run(
+                    [
+                        "openssl",
+                        "pkey",
+                        "-inform",
+                        "DER",
+                        "-in",
+                        str(temporary_der),
+                        "-out",
+                        str(converted_path),
+                    ],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                )
+            except FileNotFoundError:
+                _fail("openssl is required for Ed25519 signing but was not found")
+            except subprocess.CalledProcessError as exc:
+                _fail(f"{SIGNING_KEY_B64_ENV} is not a PEM or DER private key: {exc.stderr.strip()}")
+            os.chmod(converted_path, 0o600)
+            key_path = converted_path
+            temporary_key = converted_path
     try:
         derived = _public_key_from_private(key_path)
         if derived != public_key_base64:
@@ -669,6 +713,8 @@ def sign_manifest(
             _fail("Ed25519 signing returned an unexpected signature length")
         return base64.b64encode(raw_signature).decode("ascii") + "\n"
     finally:
+        if temporary_der is not None:
+            temporary_der.unlink(missing_ok=True)
         if temporary_key is not None:
             temporary_key.unlink(missing_ok=True)
 
@@ -716,6 +762,7 @@ def generate(
     *,
     signing_key: pathlib.Path | None = None,
     signing_key_text: str | None = None,
+    signing_key_b64: str | None = None,
     sign: bool = True,
     public_key_base64: str = PINNED_PUBLIC_KEY,
 ) -> dict:
@@ -745,21 +792,23 @@ def generate(
     signature_path = output_collections / "manifest.json.sig"
     if sign:
         key_text = signing_key_text
-        if signing_key is None and key_text is None:
-            key_text = os.environ.get("ANALECT_COLLECTION_SIGNING_KEY")
+        key_b64 = signing_key_b64
+        if signing_key is None and key_text is None and key_b64 is None:
+            key_b64 = os.environ.get(SIGNING_KEY_B64_ENV)
             key_file = os.environ.get("ANALECT_COLLECTION_SIGNING_KEY_FILE")
             if key_file:
                 signing_key = pathlib.Path(key_file)
-            if signing_key is None and key_text is None:
+            if signing_key is None and key_text is None and key_b64 is None:
                 _fail(
                     "signing credentials unavailable: set "
-                    "ANALECT_COLLECTION_SIGNING_KEY or ANALECT_COLLECTION_SIGNING_KEY_FILE"
+                    f"{SIGNING_KEY_B64_ENV} or ANALECT_COLLECTION_SIGNING_KEY_FILE"
                 )
         signature_path.write_text(
             sign_manifest(
                 manifest_bytes,
                 key_path=signing_key,
                 key_text=key_text,
+                key_b64=key_b64,
                 public_key_base64=public_key_base64,
             ),
             encoding="ascii",

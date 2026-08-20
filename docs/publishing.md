@@ -13,7 +13,7 @@ python3 tools/publish_collections.py --no-sign --output /tmp/analect-site
 ```
 
 The Pages workflow runs the same generator with `--sign` and the maintainer-held
-`ANALECT_COLLECTION_SIGNING_KEY` secret. Missing credentials, an invalid key, or
+`ANALECT_SIGNING_KEY_B64` secret. Missing credentials, an invalid key, or
 a key that does not match the app-pinned public key are hard failures.
 
 ## Trust model

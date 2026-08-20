@@ -38,5 +38,5 @@ visible version directory (for example `foda-1-2`) with `supersedes` pointing
 to `foda-1-1`; the generator derives the archive byte count, SHA-256, dance
 count, and URL from the generated artifact rather than trusting metadata.
 
-The Pages job needs the maintainer-held `ANALECT_COLLECTION_SIGNING_KEY`
+The Pages job needs the maintainer-held `ANALECT_SIGNING_KEY_B64`
 secret. The private key is never committed or printed.

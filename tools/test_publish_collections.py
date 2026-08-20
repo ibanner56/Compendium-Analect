@@ -124,6 +124,12 @@ class PublicationTest(unittest.TestCase):
         )
         self.assertTrue(verify_signature(manifest, signature, public))
         self.assertFalse(verify_signature(manifest + b"x", signature, public))
+        encoded_signature = sign_manifest(
+            manifest,
+            key_b64=base64.b64encode(key.read_bytes()).decode("ascii"),
+            public_key_base64=public,
+        )
+        self.assertTrue(verify_signature(manifest, encoded_signature, public))
         with self.assertRaisesRegex(PublicationFailure, "signing credentials unavailable"):
             sign_manifest(manifest)
         self.assertNotEqual(public, PINNED_PUBLIC_KEY)

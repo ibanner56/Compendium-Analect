@@ -289,6 +289,12 @@ class ImmutabilityTest(unittest.TestCase):
         self.commit("add repo furniture")
         self.assertEqual(check_immutability("main~1"), [])
 
+    def test_editing_collections_readme_is_repo_furniture(self):
+        self.publish_baseline()
+        self.write("collections/README.md", "# Updated collection instructions\n")
+        self.commit("update collection instructions")
+        self.assertEqual(check_immutability("main~1"), [])
+
     def test_reconciling_an_identical_file_already_on_base_is_allowed(self):
         self.publish_baseline()
         self.write("collections/foda-1/collection.json", '{"version": 1}')
