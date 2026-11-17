@@ -16,24 +16,44 @@ The Pages workflow generates the feed in a protected `sign` job using the
 `signing` environment, which supplies the maintainer-held
 `ANALECT_SIGNING_KEY_B64` secret. The generated Pages artifact is then passed to
 a dependent `deploy` job using the standard `github-pages` environment. The
-decoded key value may be PEM, DER, or a raw Ed25519 seed. Missing credentials,
-an invalid key, or a key that does not match the app-pinned public key are hard
-failures.
+decoded key value may be PEM, DER, or a raw Ed25519 seed, base64-encoded as a
+whole (a PEM pasted as-is is not valid base64). Missing credentials, an invalid
+key, or a key that does not derive `PINNED_PUBLIC_KEY` in
+`tools/publish_collections.py` are hard failures.
 
 ## Trust model
 
 The **manifest** is signed with a detached **Ed25519** signature over its exact
-bytes, verified in the app against a **pinned public key**. The manifest carries
-a **SHA-256 for each archive**, so one signature transitively covers all
+bytes, verified in the app against a **pinned set of public keys**. The
+manifest carries a **SHA-256 for each archive**, so one signature transitively covers all
 published content. Archives are not signed individually.
 
 The signing key is **separate from the key that signs application updates**. The
 update key signs installers; sharing it would mean a compromise of collection
 publishing could become code execution on every user's machine.
 
-Rotating a pinned key requires shipping the new public key in an **app release
-first**, because older clients pin the old one. That constraint now applies to
-two keys.
+The app pins a **set**: the *current* key this repository signs with, and a
+*next* key generated offline and pinned ahead of time (CallersCompendium#2161).
+A rotation therefore never ships a release that pins only the replacement key,
+which would reject the live catalog, and never switches the signer before the
+next key is widely installed, which would strand every older install. The
+next key reaches users only with the first app release after `v0.10.0-beta`,
+so step 1 has not happened yet and step 2 must not run until that release is
+widely installed. In order:
+
+1. A CallersCompendium release adds the next key after the current one. This
+   repository keeps signing with the current key.
+2. Once that release is widespread, replace the `ANALECT_SIGNING_KEY_B64`
+   secret with the next private key **first**, then merge the change that
+   updates `PINNED_PUBLIC_KEY` to match. That push re-runs the Pages workflow
+   by itself, because `tools/publish_collections.py` is in its `paths`.
+   Changing only one of the two fails the publish rather than shipping a
+   catalog the app rejects.
+3. A later app release drops the old key and pins a new next one.
+
+The full procedure, including custody, where the next key is kept, and what to
+do on a compromise, is the app repository's
+[published-collection key runbook](https://github.com/ibanner56/CallersCompendium/blob/main/docs/dev/releasing.md#signing-the-published-collection-catalog-ed25519-issue-2161).
 
 ## Immutability
 

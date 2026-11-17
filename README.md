@@ -31,9 +31,9 @@ festival's programme. You pick one from a list in the app and it arrives whole.
 
 The app fetches a **manifest** from this site listing the available collections.
 Each entry names an archive and carries its SHA-256. The manifest is signed with
-a detached **Ed25519** signature, verified in-app against a pinned public key
-before anything is read; the digest then covers each archive in turn. A manifest
-that does not verify is refused outright.
+a detached **Ed25519** signature, verified in-app against the app's pinned
+public keys before anything is read; the digest then covers each archive in
+turn. A manifest that does not verify is refused outright.
 
 Adding a collection therefore requires **no app release** — it appears in the
 app as soon as it is published here.
