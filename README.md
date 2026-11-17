@@ -8,8 +8,8 @@ Published collections of contra dance choreography, prepared for import into
 
 Served from **<https://analect.callerscompendium.com/>**.
 
-> **Status: published.** The `foda-1-1` collection is available through the
-> signed feed at
+> **Status: published.** The `foda-1` collection (`foda-1-1`, superseded by
+> `foda-1-2`) is available through the signed feed at
 > [`collections/manifest.json`](https://analect.callerscompendium.com/collections/manifest.json).
 > The Pages workflow generates the feed and immutable archives after the
 > publication gate passes.
