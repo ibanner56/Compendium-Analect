@@ -163,6 +163,47 @@ def _count_notes(figures) -> int:
     return total
 
 
+def _shown(text: str) -> str:
+    """[text] made safe to print in a reviewer-facing log line.
+
+    Whitespace runs collapse to one space; every other non-printable character
+    (escape sequences, zero-width and bidi controls) is shown as a `\\uXXXX`
+    escape, so a title cannot render as blank, hide itself, or fake extra
+    lines in the CI log the reviewer reads.
+    """
+    return "".join(
+        c if c.isprintable() else f"\\u{ord(c):04x}" for c in " ".join(text.split())
+    )
+
+
+def _container_titles(figures):
+    """Every non-blank figure `params.title`, at any depth, in order.
+
+    compendium_core's containers (`meanwhile`, `modifier`, `sequence`) carry an
+    optional caller-facing name in `params.title` ("flutterwheel"). Like a
+    figure note it is free text in the choreography, so a reviewer has to see
+    it to confirm it is a name and not author commentary. Any figure carrying
+    the key is listed, not only today's three container kinds, so a container
+    kind added later cannot slip past unseen.
+    """
+    titles = []
+    for figure in figures or []:
+        if not isinstance(figure, dict):
+            continue
+        params = figure.get("params")
+        if not isinstance(params, dict):
+            continue
+        title = params.get("title")
+        if isinstance(title, str) and title.strip():
+            titles.append(_shown(title))
+        elif is_present(title):
+            # Not a string: the app would drop it, but it is still content in
+            # the published file that nobody has looked at.
+            titles.append(repr(title))
+        titles.extend(_container_titles(params.get("figures")))
+    return titles
+
+
 def validate_archive(archive_path: pathlib.Path, declaration):
     notes = []
     try:
@@ -182,6 +223,7 @@ def validate_archive(archive_path: pathlib.Path, declaration):
     uncovered = {}
     unclassified = set()
     figure_notes = 0
+    container_titles = []
 
     for dance in dances:
         if not isinstance(dance, dict):
@@ -205,6 +247,9 @@ def validate_archive(archive_path: pathlib.Path, declaration):
                 "must be fixed rather than silently ignored."
             )
         figure_notes += _count_notes(raw_figures or [])
+        container_titles.extend(
+            (title, t) for t in _container_titles(raw_figures or [])
+        )
 
     if unclassified:
         fail(
@@ -239,6 +284,18 @@ def validate_archive(archive_path: pathlib.Path, declaration):
         notes.append(
             f"{figure_notes} figure note(s) present - transcription, not gated. "
             "Reviewer: confirm none are author commentary."
+        )
+    if container_titles:
+        # Listed in full rather than counted: a title is a short name, there are
+        # few of them, and a reviewer cannot confirm text they were not shown.
+        listed = "\n".join(
+            f"    - {_shown(str(dance_title))}: \"{text}\""
+            for dance_title, text in container_titles
+        )
+        notes.append(
+            f"{len(container_titles)} container title(s) present - "
+            "transcription, not gated. Reviewer: confirm none are author "
+            f"commentary:\n{listed}"
         )
     return notes
 

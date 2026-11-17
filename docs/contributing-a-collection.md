@@ -69,6 +69,11 @@ the choreography. The gate cannot tell transcription from prose put in the
 same slot, so it **reports the count** and leaves the judgement to a reviewer.
 Do not use figure notes to carry commentary.
 
+A group of figures (a `meanwhile`, `modifier` or `sequence` container) can
+carry a short **title** in `params.title`, such as `flutterwheel`. It is a
+name, not prose, so it is treated like a figure note: the gate **lists every
+title with its dance** for the reviewer to check, and does not fail on it.
+
 ## Running the gate locally
 
 ```sh
