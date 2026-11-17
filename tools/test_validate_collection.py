@@ -130,6 +130,92 @@ class GateTest(unittest.TestCase):
         self.assertTrue(notes, "expected a figure-note note")
         self.assertIn("3 figure note(s)", notes[0])
 
+    def test_container_titles_are_surfaced_to_the_reviewer(self):
+        # A container's `params.title` is free text a reviewer must see, like a
+        # figure note. It can sit on a top-level container or on a container
+        # nested inside a `meanwhile`, so both must be listed with their dance.
+        archive = self.write_archive(
+            dance(
+                title="Titled Dance",
+                figures=[
+                    {
+                        "schemaVersion": 1,
+                        "move": "sequence",
+                        "params": {
+                            "beats": 8,
+                            "title": "Open role2s chain to neighbor",
+                            "figures": [
+                                {"schemaVersion": 1, "move": "balance", "params": {"beats": 4}},
+                                {"schemaVersion": 1, "move": "chain", "params": {"beats": 4}},
+                            ],
+                        },
+                    },
+                    {
+                        "schemaVersion": 1,
+                        "move": "meanwhile",
+                        "params": {
+                            "beats": 8,
+                            "figures": [
+                                {
+                                    "schemaVersion": 1,
+                                    "move": "modifier",
+                                    "params": {
+                                        "beats": 8,
+                                        "title": "nested title",
+                                        "figures": [
+                                            {"schemaVersion": 1, "move": "swing", "params": {"beats": 8}},
+                                        ],
+                                    },
+                                },
+                                {"schemaVersion": 1, "move": "star", "params": {"beats": 8}},
+                            ],
+                        },
+                    },
+                    {
+                        "schemaVersion": 1,
+                        "move": "sequence",
+                        "params": {"beats": 4, "title": "   ", "figures": []},
+                    },
+                ],
+            )
+        )
+        notes = validate_archive(archive, None)
+        joined = "\n".join(notes)
+        self.assertIn("2 container title(s)", joined)
+        self.assertIn('Titled Dance: "Open role2s chain to neighbor"', joined)
+        self.assertIn('Titled Dance: "nested title"', joined)
+        self.assertNotIn("figure note", joined)
+
+    def test_container_titles_cannot_hide_or_forge_lines(self):
+        # The list is read in a CI log: a control character must show as an
+        # escape rather than render blank or start a fake list line, and a
+        # non-string title (which the app would drop) is still listed.
+        archive = self.write_archive(
+            dance(
+                title="Two\nLines",
+                figures=[
+                    {
+                        "schemaVersion": 1,
+                        "move": "sequence",
+                        "params": {"beats": 8, "title": "\u200b\x1b[8m", "figures": []},
+                    },
+                    {
+                        "schemaVersion": 1,
+                        "move": "sequence",
+                        "params": {"beats": 8, "title": ["not", "a string"], "figures": []},
+                    },
+                ],
+            )
+        )
+        joined = "\n".join(validate_archive(archive, None))
+        self.assertIn('- Two Lines: "\\u200b\\u001b[8m"', joined)
+        self.assertIn("['not', 'a string']", joined)
+        self.assertNotIn("\x1b", joined)
+
+    def test_no_container_titles_means_no_title_note(self):
+        notes = validate_archive(self.write_archive(dance()), None)
+        self.assertFalse(any("container title" in n for n in notes))
+
     def test_commentary_passes_when_declared(self):
         archive = self.write_archive(dance(callingNotes="robins look right"))
         decl = load_declaration(self.write_declaration())
