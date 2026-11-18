@@ -21,6 +21,10 @@ archives for CallersCompendium PR #1007.
 The `foda-2` collection (*Free and Open Dancing for All Vol. 2*) is published
 the same way, as `foda-2-1`.
 
+The `son-of-shadrack` collection (*Son of Shadrack and Other Dances*, Tony
+Parkes) is published the same way, as `son-of-shadrack-1`: choreography only,
+with no permission grant.
+
 Each version directory also contains the publication inputs:
 
 ```
