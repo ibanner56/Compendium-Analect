@@ -1,0 +1,14 @@
+{
+  "collectionId": "son-of-shadrack",
+  "version": "1",
+  "title": "Son of Shadrack and Other Dances",
+  "archive": "collections/son-of-shadrack-1/archive.json",
+  "requiresCapabilities": [],
+  "permission": {
+    "grantedBy": "No grant: choreography only",
+    "basis": "Choreography only",
+    "termsUrl": "",
+    "coversFields": []
+  },
+  "license": "NONE"
+}
