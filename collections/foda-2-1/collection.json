@@ -1,0 +1,13 @@
+{
+  "collectionId": "foda-2",
+  "version": "1",
+  "title": "Free and Open Dancing for All Vol. 2",
+  "archive": "collections/foda-2-1/archive.json",
+  "requiresCapabilities": ["compositePhraseStructureV1"],
+  "supersedes": null,
+  "permission": {
+    "grantedBy": "Isaac Banner",
+    "coversFields": ["callingNotes", "walkthrough", "links"]
+  },
+  "license": "CC0-1.0"
+}

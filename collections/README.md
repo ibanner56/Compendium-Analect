@@ -18,6 +18,9 @@ versions: `foda-1-1` and `foda-1-2`, which supersedes it. The feed is
 signed with a detached Ed25519 signature and contains immutable, dance-only v1
 archives for CallersCompendium PR #1007.
 
+The `foda-2` collection (*Free and Open Dancing for All Vol. 2*) is published
+the same way, as `foda-2-1`.
+
 Each version directory also contains the publication inputs:
 
 ```
