@@ -1,0 +1,15 @@
+{
+  "collectionId": "easy-contras",
+  "version": "2",
+  "title": "Easy Contra Dances, Compiled by Michael Fuerst",
+  "archive": "collections/easy-contras-2/archive.json",
+  "requiresCapabilities": [],
+  "supersedes": "easy-contras-1",
+  "permission": {
+    "grantedBy": "No grant: choreography only",
+    "basis": "Choreography only",
+    "termsUrl": "",
+    "coversFields": []
+  },
+  "license": "NONE"
+}
