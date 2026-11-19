@@ -9,7 +9,8 @@ Published collections of contra dance choreography, prepared for import into
 Served from **<https://analect.callerscompendium.com/>**.
 
 > **Status: published.** The `foda-1` collection (`foda-1-1`, superseded by
-> `foda-1-2`) and the `foda-2` collection (`foda-2-1`) are available through
+> `foda-1-2`), the `foda-2` collection (`foda-2-1`) and the `easy-contras`
+> collection (`easy-contras-1`, superseded by `easy-contras-2`) are available through
 > the signed feed at
 > [`collections/manifest.json`](https://analect.callerscompendium.com/collections/manifest.json).
 > The Pages workflow generates the feed and immutable archives after the
