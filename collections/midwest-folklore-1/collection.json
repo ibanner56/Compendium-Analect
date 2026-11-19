@@ -1,0 +1,14 @@
+{
+  "collectionId": "midwest-folklore",
+  "version": "1",
+  "title": "Midwest Folklore and other dances",
+  "archive": "collections/midwest-folklore-1/archive.json",
+  "requiresCapabilities": [],
+  "permission": {
+    "grantedBy": "No grant: choreography only",
+    "basis": "Choreography only",
+    "termsUrl": "",
+    "coversFields": []
+  },
+  "license": "NONE"
+}
